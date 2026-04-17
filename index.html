@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Four Generations: Family Migration Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+
+        .header-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            padding: 24px;
+            max-width: 380px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .header-panel h1 {
+            font-family: 'Lora', serif;
+            font-size: 26px;
+            color: #2c5f2d;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .header-panel p {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .info {
+            padding: 6px 8px;
+            background: white;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .legend {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            font-size: 13px;
+        }
+
+        .legend-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #2c5f2d;
+            font-family: 'Lora', serif;
+            font-size: 14px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            transition: transform 0.2s ease;
+        }
+
+        .legend-item:hover {
+            transform: translateX(4px);
+        }
+
+        .legend-item i {
+            width: 12px;
+            height: 12px;
+            margin-right: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .legend-item span {
+            color: #555;
+        }
+
+        .birth-marker {
+            background: #2196F3 !important;
+        }
+
+        .death-marker {
+            background: #d32f2f !important;
+        }
+
+        .migration-line {
+            stroke: #7b68ee;
+            stroke-width: 2;
+            opacity: 0.4;
+        }
+
+        .leaflet-popup-content {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .popup-header {
+            font-family: 'Lora', serif;
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #2c5f2d;
+            padding-bottom: 8px;
+        }
+
+        .popup-row {
+            margin: 8px 0;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .popup-label {
+            font-weight: 500;
+            color: #2c5f2d;
+        }
+
+        .popup-value {
+            color: #555;
+        }
+
+        .living {
+            opacity: 0.85;
+        }
+
+        .deceased {
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([45, -95], 4);
+
+        // Add OpenStreetMap tiles (Mercator projection)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Family data
+        const familyData = [
+            { name: 'Reed Winston Bayless', birthDate: '8-31-2003', deathDate: 'Living', birthLat: 47.6062, birthLng: -122.3321, birthPlace: 'Seattle, WA', deathLat: null, deathLng: null, deathPlace: null, generation: 'You' },
+            { name: 'Stuart Winston Bayless', birthDate: '5-29-1965', deathDate: 'Living', birthLat: 36.0006, birthLng: -78.9379, birthPlace: 'Durham, NC', deathLat: null, deathLng: null, deathPlace: null, generation: 'Generation 1 - Father' },
+            { name: 'Sarah Maureen Harrison', birthDate: '8-29-1965', deathDate: 'Living', birthLat: 40.2206, birthLng: -74.7597, birthPlace: 'Princeton, NJ', deathLat: null, deathLng: null, deathPlace: null, generation: 'Generation 1 - Mother' },
+            { name: 'Theodore Lynn Bayless', birthDate: '8-15-1935', deathDate: '7-30-2015', birthLat: 41.1624, birthLng: -83.6549, birthPlace: 'Findlay, Ohio', deathLat: 33.3662, deathLng: -111.8910, deathPlace: 'Mesa, Arizona', generation: 'Generation 2' },
+            { name: 'Willathea Patzer', birthDate: '8-15-1935', deathDate: '10-9-2025', birthLat: 39.4171, birthLng: -74.5946, birthPlace: 'Sommers Pt, New Jersey', deathLat: 35.5951, deathLng: -82.5515, deathPlace: 'Asheville, North Carolina', generation: 'Generation 2' },
+            { name: 'George John Langmyhr', birthDate: '12-28-1931', deathDate: '6-13-1993', birthLat: 43.4516, birthLng: -80.4925, birthPlace: 'Ontario, Canada', deathLat: 35.0844, deathLng: -106.6504, deathPlace: 'Albuquerque, New Mexico', generation: 'Generation 2' },
+            { name: 'Maureen Macintyre Langmyhr', birthDate: '10-18-1930', deathDate: '12-15-2024', birthLat: 18.9712, birthLng: -65.9494, birthPlace: 'Roseau, Dominica', deathLat: 48.7519, deathLng: -122.3045, deathPlace: 'Bellingham, Washington', generation: 'Generation 2' },
+            { name: 'Theodore Crowl Bayless', birthDate: '1913', deathDate: '10-17-1978', birthLat: 41.1624, birthLng: -83.6549, birthPlace: 'Findlay, Ohio', deathLat: 41.1624, deathLng: -83.6549, deathPlace: 'Findlay, Ohio', generation: 'Generation 3' },
+            { name: 'Doris Esther Sprauge', birthDate: '2-20-1914', deathDate: '8-26-2010', birthLat: 33.3662, birthLng: -111.8910, birthPlace: 'Mesa, Arizona', deathLat: 33.3662, deathLng: -111.8910, deathPlace: 'Mesa, Arizona', generation: 'Generation 3' },
+            { name: 'William Henry Parlette', birthDate: '12-28-1908', deathDate: '2-24-1992', birthLat: 39.1582, birthLng: -75.5244, birthPlace: 'Delaware, Pennsylvania', deathLat: 39.2974, deathLng: -74.4286, deathPlace: 'Atlantic City, New Jersey', generation: 'Generation 3' },
+            { name: 'Mabel Althea Parlette', birthDate: '4-17-1912', deathDate: '12-28-1980', birthLat: 40.7357, birthLng: -74.1724, birthPlace: 'Linwood, New Jersey', deathLat: 40.7357, deathLng: -74.1724, deathPlace: 'Linwood, New Jersey', generation: 'Generation 3' },
+            { name: 'Georg Johan Langmyhr', birthDate: '7-27-1883', deathDate: '2-28-1953', birthLat: 59.4370, birthLng: 5.2711, birthPlace: 'Vestfold, Norway', deathLat: 43.6629, deathLng: -79.3957, deathPlace: 'Lambton, Ontario', generation: 'Generation 3' },
+            { name: 'Ingeborg Olsdatter Sveen', birthDate: '2-3-1903', deathDate: '7-3-1967', birthLat: 59.1938, birthLng: 10.7725, birthPlace: 'Ostfold, Norway', deathLat: 43.4516, deathLng: -80.4925, deathPlace: 'Ontario, Canada', generation: 'Generation 3' },
+            { name: 'William Flanders Harrison', birthDate: '10-20-1889', deathDate: '4-X-1975', birthLat: 51.8454, birthLng: -2.6477, birthPlace: 'Shropshire, England', deathLat: 50.7184, deathLng: -3.5339, deathPlace: 'Devon, England', generation: 'Generation 3' },
+            { name: 'Doris Macintyre Harrison (Lockhart)', birthDate: '4-26-1894', deathDate: '10-X-1977', birthLat: 18.9712, birthLng: -65.9494, birthPlace: 'Roseau, Dominica', deathLat: 51.2530, deathLng: -1.5075, deathPlace: 'Hampshire, England', generation: 'Generation 3' }
+        ];
+
+        // Create custom icons
+        const birthIcon = L.divIcon({
+            html: '<div style="width: 14px; height: 14px; background: #2196F3; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 8px rgba(33, 150, 243, 0.4);"></div>',
+            iconSize: [20, 20],
+            className: 'living'
+        });
+
+        const deathIcon = L.divIcon({
+            html: '<div style="width: 14px; height: 14px; background: #d32f2f; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 8px rgba(211, 47, 47, 0.4);"></div>',
+            iconSize: [20, 20],
+            className: 'deceased'
+        });
+
+        // Add markers and lines
+        familyData.forEach(person => {
+            const isDeceased = person.deathDate !== 'Living';
+
+            // Birth marker
+            if (person.birthLat && person.birthLng) {
+                L.marker([person.birthLat, person.birthLng], { icon: birthIcon })
+                    .bindPopup(`
+                        <div style="min-width: 280px;">
+                            <div class="popup-header" style="color: #2196F3;">${person.name}</div>
+                            <div class="popup-row">
+                                <span class="popup-label">Born:</span> <span class="popup-value">${person.birthDate}</span>
+                            </div>
+                            <div class="popup-row">
+                                <span class="popup-label">Location:</span> <span class="popup-value">${person.birthPlace}</span>
+                            </div>
+                        </div>
+                    `)
+                    .addTo(map);
+            }
+
+            // Death marker
+            if (isDeceased && person.deathLat && person.deathLng) {
+                L.marker([person.deathLat, person.deathLng], { icon: deathIcon })
+                    .bindPopup(`
+                        <div style="min-width: 280px;">
+                            <div class="popup-header" style="color: #d32f2f;">${person.name}</div>
+                            <div class="popup-row">
+                                <span class="popup-label">Died:</span> <span class="popup-value">${person.deathDate}</span>
+                            </div>
+                            <div class="popup-row">
+                                <span class="popup-label">Location:</span> <span class="popup-value">${person.deathPlace}</span>
+                            </div>
+                        </div>
+                    `)
+                    .addTo(map);
+
+                // Draw migration line
+                if (person.birthLat && person.birthLng) {
+                    L.polyline([
+                        [person.birthLat, person.birthLng],
+                        [person.deathLat, person.deathLng]
+                    ], {
+                        color: '#7b68ee',
+                        weight: 2,
+                        opacity: 0.4,
+                        dashArray: '6, 3',
+                        lineCap: 'round'
+                    }).addTo(map);
+                }
+            }
+        });
+
+        // Add header panel
+        const headerPanel = L.control({ position: 'topleft' });
+        headerPanel.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'header-panel');
+            div.innerHTML = `
+                <h1>Four Generations</h1>
+                <p>Explore the migration patterns and locations of a family across four generations. Click any marker to view birth and death information.</p>
+            `;
+            return div;
+        };
+        headerPanel.addTo(map);
+
+        // Add legend
+        const legend = L.control({ position: 'bottomright' });
+        legend.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'info legend');
+            div.innerHTML = `
+                <div class="legend-title">Migration Guide</div>
+                <div class="legend-item">
+                    <i class="birth-marker"></i>
+                    <span>Birth Location</span>
+                </div>
+                <div class="legend-item">
+                    <i class="death-marker"></i>
+                    <span>Death Location</span>
+                </div>
+                <div class="legend-item">
+                    <span style="color: #7b68ee; font-weight: 500;">─ ─ ─ Migration Path</span>
+                </div>
+            `;
+            return div;
+        };
+        legend.addTo(map);
+
+        // Prevent dragging the header panel
+        L.DomEvent.disableClickPropagation(document.querySelector('.header-panel'));
+    </script>
+</body>
+</html>
